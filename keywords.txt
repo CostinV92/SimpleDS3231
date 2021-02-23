@@ -12,14 +12,22 @@ SimpleDS3231	KEYWORD1
 # Methods and Functions (KEYWORD2)
 #######################################
 
-get_sec	KEYWORD2
-get_min	KEYWORD2
 get_hou	KEYWORD2
+get_min	KEYWORD2
+get_sec	KEYWORD2
 get_time_str	KEYWORD2
-get_dat	KEYWORD2
+set_hou	KEYWORD2
+set_min	KEYWORD2
+set_sec	KEYWORD2
+set_time	KEYWORD2
+get_day	KEYWORD2
 get_mon	KEYWORD2
 get_year	KEYWORD2
 get_date_str	KEYWORD2
+set_day	KEYWORD2
+set_mon	KEYWORD2
+set_year	KEYWORD2
+set_date	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)

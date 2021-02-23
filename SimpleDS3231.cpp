@@ -5,6 +5,8 @@
  * Licensed under the MIT license.
  */
 
+#include <Arduino.h>
+
 #include "SimpleDS3231.h"
 #include "include/ds3231.h"
 

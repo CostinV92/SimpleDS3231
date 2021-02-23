@@ -8,7 +8,6 @@
 #ifndef __SIMPLEDS3231_H__
 #define __SIMPLEDS3231_H__
 
-#include <Arduino.h>
 #include "include/SimpleI2CInterface.h"
 
 class SimpleDS3231 : public SimpleI2CInterface {
