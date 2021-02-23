@@ -43,22 +43,22 @@
 #define WRITE_DATE_DATA()   _write_data_reg(DS3231_DAY_REG, 3);
 
 /* Decode macros */
-#define DECODE_SEC()        do { _sec = _decode_gen(_raw_data[DATA_SEC]); } while (0);
-#define DECODE_MIN()        do { _min = _decode_gen(_raw_data[DATA_MIN]); } while (0);
+#define DECODE_SEC()        do { _sec = _decode_gen(_data_buffer[DATA_SEC]); } while (0);
+#define DECODE_MIN()        do { _min = _decode_gen(_data_buffer[DATA_MIN]); } while (0);
 #define DECODE_HOU()        do { _decode_hou(); } while (0);
 
-#define DECODE_DAY()        do { _day = _decode_gen(_raw_data[DATA_DAY]); } while (0);
-#define DECODE_MON()        do { _mon = _decode_gen(_raw_data[DATA_MON]); } while (0);
-#define DECODE_YEAR()       do { _year = 2000 + _decode_gen(_raw_data[DATA_YEAR]); } while (0);
+#define DECODE_DAY()        do { _day = _decode_gen(_data_buffer[DATA_DAY]); } while (0);
+#define DECODE_MON()        do { _mon = _decode_gen(_data_buffer[DATA_MON]); } while (0);
+#define DECODE_YEAR()       do { _year = 2000 + _decode_gen(_data_buffer[DATA_YEAR]); } while (0);
 
 /* Encode macros */
-#define ENCODE_SEC(sec)                     do { _output_data[DATA_SEC] = _encode_gen(sec); } while (0);
-#define ENCODE_MIN(min)                     do { _output_data[DATA_MIN] = _encode_gen(min); } while (0);
-#define ENCODE_HOU(hou, format, is_pm)      do { _output_data[DATA_HOU] = _encode_hou(hou, format, is_pm); } while (0);
+#define ENCODE_SEC(sec)                     do { _data_buffer[DATA_SEC] = _encode_gen(sec); } while (0);
+#define ENCODE_MIN(min)                     do { _data_buffer[DATA_MIN] = _encode_gen(min); } while (0);
+#define ENCODE_HOU(hou, format, is_pm)      do { _data_buffer[DATA_HOU] = _encode_hou(hou, format, is_pm); } while (0);
 
-#define ENCODE_DAY(day)                     do { _output_data[DATA_DAY] = _encode_gen(day); } while (0);
-#define ENCODE_MON(mon)                     do { _output_data[DATA_MON] = _encode_gen(mon); } while (0);
-#define ENCODE_YEAR(year)                   do { _output_data[DATA_YEAR] = _encode_gen(year); } while (0);
+#define ENCODE_DAY(day)                     do { _data_buffer[DATA_DAY] = _encode_gen(day); } while (0);
+#define ENCODE_MON(mon)                     do { _data_buffer[DATA_MON] = _encode_gen(mon); } while (0);
+#define ENCODE_YEAR(year)                   do { _data_buffer[DATA_YEAR] = _encode_gen(year); } while (0);
 
 /* Miscellaneous */
 #define MASK_BIT(bit)       (1 << bit)
@@ -146,10 +146,10 @@ void SimpleDS3231::_read_data_reg(uint8_t reg, uint8_t n_regs)
 
     if (n_regs != 1) {
         for (i = reg; i < reg + n_regs - 1; i++)
-            _raw_data[i] =_read_byte_ack();
-        _raw_data[i] = _read_byte_nack();
+            _data_buffer[i] =_read_byte_ack();
+        _data_buffer[i] = _read_byte_nack();
     } else {
-        _raw_data[reg] = _read_byte_nack();
+        _data_buffer[reg] = _read_byte_nack();
     }
 
     _write_stop();
@@ -166,7 +166,7 @@ void SimpleDS3231::_write_data_reg(uint8_t reg, uint8_t n_regs)
 
     /* Send data */
     for (i = reg; i < reg + n_regs; i++)
-        _write_byte(_output_data[i]);
+        _write_byte(_data_buffer[i]);
 
     _write_stop();
 }
@@ -174,24 +174,25 @@ void SimpleDS3231::_write_data_reg(uint8_t reg, uint8_t n_regs)
 inline void SimpleDS3231::_format_time_string()
 {
     /* Format time string */
-    _time_str[2] = _time_str[5] = ':';
-    _time_str[1] = LSB_HALF(_raw_data[DATA_HOU]) + ASCII_OFFSET;
-    _time_str[3] = MSB_HALF(_raw_data[DATA_MIN]) + ASCII_OFFSET;
-    _time_str[4] = LSB_HALF(_raw_data[DATA_MIN]) + ASCII_OFFSET;
-    _time_str[6] = MSB_HALF(_raw_data[DATA_SEC]) + ASCII_OFFSET;
-    _time_str[7] = LSB_HALF(_raw_data[DATA_SEC]) + ASCII_OFFSET;
+    _str_buffer[2] = _str_buffer[5] = ':';
+    _str_buffer[1] = LSB_HALF(_data_buffer[DATA_HOU]) + ASCII_OFFSET;
+    _str_buffer[3] = MSB_HALF(_data_buffer[DATA_MIN]) + ASCII_OFFSET;
+    _str_buffer[4] = LSB_HALF(_data_buffer[DATA_MIN]) + ASCII_OFFSET;
+    _str_buffer[6] = MSB_HALF(_data_buffer[DATA_SEC]) + ASCII_OFFSET;
+    _str_buffer[7] = LSB_HALF(_data_buffer[DATA_SEC]) + ASCII_OFFSET;
 
     if (_12_format) {
-        _time_str[0] = MSB_HALF(_raw_data[DATA_HOU] & MASK_BIT(HOU_TENS_1)) + ASCII_OFFSET;
+        _str_buffer[0] = MSB_HALF(_data_buffer[DATA_HOU] & MASK_BIT(HOU_TENS_1)) + ASCII_OFFSET;
         if (_is_pm)
-            _time_str[9] = 'P';
+            _str_buffer[9] = 'P';
         else
-            _time_str[9] = 'A';
-        _time_str[10] = 'M';
+            _str_buffer[9] = 'A';
+        _str_buffer[10] = 'M';
+        _str_buffer[11] = '\0';
     } else {
-        _time_str[0] = MSB_HALF((_raw_data[DATA_HOU] & MASK_BIT(HOU_TENS_1)) |
-                                (_raw_data[DATA_HOU] & MASK_BIT(HOU_TENS_2))) + ASCII_OFFSET;
-        _time_str[8] = '\0';
+        _str_buffer[0] = MSB_HALF((_data_buffer[DATA_HOU] & MASK_BIT(HOU_TENS_1)) |
+                                (_data_buffer[DATA_HOU] & MASK_BIT(HOU_TENS_2))) + ASCII_OFFSET;
+        _str_buffer[8] = '\0';
     }
 }
 
@@ -199,34 +200,34 @@ inline void SimpleDS3231::_format_date_string()
 {
     int year_aux = 0, aux = 0;
 
-    _date_str[2] = _date_str[5] = '.';
-    _date_str[10] = '\0';
-    _date_str[0] = MSB_HALF(_raw_data[DATA_DAY]) + ASCII_OFFSET;
-    _date_str[1] = LSB_HALF(_raw_data[DATA_DAY]) + ASCII_OFFSET;
-    _date_str[3] = MSB_HALF(_raw_data[DATA_MON]) + ASCII_OFFSET;
-    _date_str[4] = LSB_HALF(_raw_data[DATA_MON]) + ASCII_OFFSET;
+    _str_buffer[2] = _str_buffer[5] = '.';
+    _str_buffer[10] = '\0';
+    _str_buffer[0] = MSB_HALF(_data_buffer[DATA_DAY]) + ASCII_OFFSET;
+    _str_buffer[1] = LSB_HALF(_data_buffer[DATA_DAY]) + ASCII_OFFSET;
+    _str_buffer[3] = MSB_HALF(_data_buffer[DATA_MON]) + ASCII_OFFSET;
+    _str_buffer[4] = LSB_HALF(_data_buffer[DATA_MON]) + ASCII_OFFSET;
     
     year_aux = _year;
     while (year_aux >= 1000) {
         aux++;
         year_aux -= 1000;
     }
-    _date_str[6] = aux + ASCII_OFFSET;
+    _str_buffer[6] = aux + ASCII_OFFSET;
 
     aux = 0;
     while (year_aux >= 100) {
         aux++;
         year_aux -= 100;
     }
-    _date_str[7] = aux + ASCII_OFFSET;
+    _str_buffer[7] = aux + ASCII_OFFSET;
 
     aux = 0;
     while (year_aux >= 10) {
         aux++;
         year_aux -= 10;
     }
-    _date_str[8] = aux + ASCII_OFFSET;
-    _date_str[9] = year_aux + ASCII_OFFSET;
+    _str_buffer[8] = aux + ASCII_OFFSET;
+    _str_buffer[9] = year_aux + ASCII_OFFSET;
 }
 
 inline uint8_t SimpleDS3231::_decode_gen(uint8_t raw_data)
@@ -236,15 +237,15 @@ inline uint8_t SimpleDS3231::_decode_gen(uint8_t raw_data)
 
 inline void SimpleDS3231::_decode_hou()
 {
-    _12_format = _raw_data[DATA_HOU] & MASK_BIT(HOU_FORMAT);
+    _12_format = _data_buffer[DATA_HOU] & MASK_BIT(HOU_FORMAT);
     if (_12_format) {
-        _is_pm = _raw_data[DATA_HOU] & MASK_BIT(HOU_AM_PM);
-        _hou = MSB_HALF(_raw_data[DATA_HOU] & MASK_BIT(HOU_TENS_1)) * 10 +
-                LSB_HALF(_raw_data[DATA_HOU]);
+        _is_pm = _data_buffer[DATA_HOU] & MASK_BIT(HOU_AM_PM);
+        _hou = MSB_HALF(_data_buffer[DATA_HOU] & MASK_BIT(HOU_TENS_1)) * 10 +
+                LSB_HALF(_data_buffer[DATA_HOU]);
     } else {
-        _hou = MSB_HALF((_raw_data[DATA_HOU] & MASK_BIT(HOU_TENS_1)) |
-                        (_raw_data[DATA_HOU] & MASK_BIT(HOU_TENS_2))) * 10 +
-                            LSB_HALF(_raw_data[DATA_HOU]);
+        _hou = MSB_HALF((_data_buffer[DATA_HOU] & MASK_BIT(HOU_TENS_1)) |
+                        (_data_buffer[DATA_HOU] & MASK_BIT(HOU_TENS_2))) * 10 +
+                            LSB_HALF(_data_buffer[DATA_HOU]);
     }
 }
 
@@ -308,7 +309,7 @@ const char* SimpleDS3231::get_time_str()
     DECODE_HOU();
     _format_time_string();
 
-    return _time_str;
+    return _str_buffer;
 }
 
 void SimpleDS3231::set_hou(uint8_t hou, bool am_pm_format, bool is_pm)
@@ -384,7 +385,7 @@ const char* SimpleDS3231::get_date_str()
     DECODE_YEAR();
     _format_date_string();
 
-    return _date_str;
+    return _str_buffer;
 }
 
 void SimpleDS3231::set_day(uint8_t day)
@@ -393,7 +394,7 @@ void SimpleDS3231::set_day(uint8_t day)
         return;
 
     ENCODE_DAY(day);
-    Serial.println(_output_data[DATA_DAY]);
+    Serial.println(_data_buffer[DATA_DAY]);
     WRITE_DAY_DATA();
 }
 

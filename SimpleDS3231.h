@@ -20,13 +20,11 @@ private:
     uint8_t             _mon = 0;
     int                 _year = 0;
 
-    uint8_t             _raw_data[7] = {0};
-    uint8_t             _output_data[7] = {0};
-
     bool                _is_pm = false;
     bool                _12_format = false;
-    char                _time_str[12] = "xx:xx:xx xx";
-    char                _date_str[11] = "xx.xx.xxxx";
+
+    uint8_t             _data_buffer[7];
+    char                _str_buffer[12];
 
     void                _read_data_reg(uint8_t reg, uint8_t n_regs);
     void                _write_data_reg(uint8_t reg, uint8_t n_regs);
