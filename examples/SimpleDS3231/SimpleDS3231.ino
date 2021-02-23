@@ -15,6 +15,16 @@ void setup()
    * Initiate SimpleDS3231 object.
    */
   rtc.begin();
+
+  /*
+   * Set time. rtc.set_time(hour, minute, second, is_12_hour_format, is_pm)
+   */
+  rtc.set_time(23, 5, 25, false, false);
+
+  /*
+   * Set date. rtc.set_date(day_of_month, month, year)
+   */
+  rtc.set_date(23, 2, 2021);
 }
 
 void loop()

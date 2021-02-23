@@ -11,8 +11,8 @@
 #define DS3231_SEC_REG              0x00
 #define DS3231_MIN_REG              0x01
 #define DS3231_HOU_REG              0x02
-#define DS3231_DAY_REG              0x03
-#define DS3231_DAT_REG              0x04
+#define DS3231_DOW_REG              0x03
+#define DS3231_DAY_REG              0x04
 #define DS3231_MON_REG              0x05
 #define DS3231_YEAR_REG             0x06
 #define DS3231_NO_DATA_REG          0x07
