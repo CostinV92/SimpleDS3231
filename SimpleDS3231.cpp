@@ -12,8 +12,8 @@
 #define DATA_SEC            0
 #define DATA_MIN            1
 #define DATA_HOU            2
-#define DATA_DAY            3
-#define DATA_DAT            4
+#define DATA_DOW            3
+#define DATA_DAY            4
 #define DATA_MON            5
 #define DATA_YEAR           6
 
@@ -83,7 +83,7 @@ void SimpleI2CInterface::begin()
     TWBR = ((F_CPU / 400000L) - 16) / 2;
 }
 
-inline void SimpleI2CInterface::_send_start()
+inline void SimpleI2CInterface::_write_start()
 {
 
     TWCR = MASK_BIT(TWINT) | MASK_BIT(TWSTA) | MASK_BIT(TWEN);
@@ -91,12 +91,12 @@ inline void SimpleI2CInterface::_send_start()
     _wait_int();
 }
 
-inline void SimpleI2CInterface::_send_stop()
+inline void SimpleI2CInterface::_write_stop()
 {
     TWCR = MASK_BIT(TWINT) | MASK_BIT(TWSTO) | MASK_BIT(TWEN);
 }
 
-inline void SimpleI2CInterface::_send_byte(uint8_t byte)
+inline void SimpleI2CInterface::_write_byte(uint8_t byte)
 {
     TWDR = byte;
 
@@ -105,7 +105,7 @@ inline void SimpleI2CInterface::_send_byte(uint8_t byte)
     _wait_int();
 }
 
-inline uint8_t SimpleI2CInterface::_recv_byte_ack()
+inline uint8_t SimpleI2CInterface::_read_byte_ack()
 {
     TWCR = MASK_BIT(TWINT) | MASK_BIT(TWEA) | MASK_BIT(TWEN);
 
@@ -114,7 +114,7 @@ inline uint8_t SimpleI2CInterface::_recv_byte_ack()
     return TWDR;
 }
 
-inline uint8_t SimpleI2CInterface::_recv_byte_nack()
+inline uint8_t SimpleI2CInterface::_read_byte_nack()
 {
     TWCR = MASK_BIT(TWINT) | MASK_BIT(TWEN);
 
@@ -136,23 +136,23 @@ void SimpleDS3231::_read_data_reg(uint8_t reg, uint8_t n_regs)
     int i = 0;
 
     /* Set starting register */
-    _send_start();
-    _send_byte(DS3231_WRITE_ADDR);
-    _send_byte(reg);
+    _write_start();
+    _write_byte(DS3231_WRITE_ADDR);
+    _write_byte(reg);
 
     /* Start receiving data */
-    _send_start();
-    _send_byte(DS3231_READ_ADDR);
+    _write_start();
+    _write_byte(DS3231_READ_ADDR);
 
     if (n_regs != 1) {
         for (i = reg; i < reg + n_regs - 1; i++)
-            _raw_data[i] =_recv_byte_ack();
-        _raw_data[i] = _recv_byte_nack();
+            _raw_data[i] =_read_byte_ack();
+        _raw_data[i] = _read_byte_nack();
     } else {
-        _raw_data[reg] = _recv_byte_nack();
+        _raw_data[reg] = _read_byte_nack();
     }
 
-    _send_stop();
+    _write_stop();
 }
 
 void SimpleDS3231::_write_data_reg(uint8_t reg, uint8_t n_regs)
@@ -160,15 +160,15 @@ void SimpleDS3231::_write_data_reg(uint8_t reg, uint8_t n_regs)
     int i = 0;
 
     /* Set starting register */
-    _send_start();
-    _send_byte(DS3231_WRITE_ADDR);
-    _send_byte(reg);
+    _write_start();
+    _write_byte(DS3231_WRITE_ADDR);
+    _write_byte(reg);
 
     /* Send data */
     for (i = reg; i < reg + n_regs; i++)
-        _send_byte(_output_data[i]);
+        _write_byte(_output_data[i]);
 
-    _send_stop();
+    _write_stop();
 }
 
 inline void SimpleDS3231::_format_time_string()
@@ -313,7 +313,7 @@ const char* SimpleDS3231::get_time_str()
 
 void SimpleDS3231::set_hou(uint8_t hou, bool am_pm_format, bool is_pm)
 {
-    if (am_pm_format && hou > 12 ||
+    if (am_pm_format && (hou < 1 || hou > 12) ||
         hou > 23)
         return;
 
@@ -342,7 +342,7 @@ void SimpleDS3231::set_sec(uint8_t sec)
 void SimpleDS3231::set_time(uint8_t hou, uint8_t min, uint8_t sec,
                             bool am_pm_format, bool is_pm)
 {
-    if (am_pm_format && hou > 12 ||
+    if (am_pm_format && (hou < 1 || hou > 12) ||
         hou > 23 || min > 59 || sec > 59)
         return;
 
@@ -389,16 +389,17 @@ const char* SimpleDS3231::get_date_str()
 
 void SimpleDS3231::set_day(uint8_t day)
 {
-    if (day > 31)
+    if (day < 1 || day > 31)
         return;
 
     ENCODE_DAY(day);
+    Serial.println(_output_data[DATA_DAY]);
     WRITE_DAY_DATA();
 }
 
 void SimpleDS3231::set_mon(uint8_t mon)
 {
-    if (mon > 12)
+    if (mon < 1 || mon > 12)
         return;
 
     ENCODE_MON(mon);
@@ -416,7 +417,9 @@ void SimpleDS3231::set_year(int year)
 
 void SimpleDS3231::set_date(uint8_t day, uint8_t mon, int year)
 {
-    if (day > 31 || mon > 12 || year < 2000 || year > 2099)
+    if (day < 1 || day > 31 ||
+        mon < 1 || mon > 12 ||
+        year < 2000 || year > 2099)
         return;
 
     ENCODE_DAY(day);
