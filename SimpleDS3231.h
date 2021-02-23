@@ -29,17 +29,11 @@ private:
 
     void                _get_data_reg(uint8_t reg, uint8_t n_regs);
 
-    void                _format_sec_data();
-    void                _format_min_data();
-    void                _format_hou_data();
     void                _format_time_string();
-    void                _format_time_data();
+    void                _format_date_string();
 
-    void                _format_dat_data();
-    void                _format_mon_data();
-    void                _format_year_data();
-    void                _format_date_string(); 
-    void                _format_date_data();
+    uint8_t             _decode_gen(uint8_t data);
+    void                _decode_hou();
 
 public:
     SimpleDS3231();

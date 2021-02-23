@@ -32,12 +32,22 @@
 #define GET_YEAR_DATA()     _get_data_reg(DS3231_YEAR_REG, 1);
 #define GET_ALL_DATA()      _get_data_reg(DS3231_SEC_REG, DS3231_NO_DATA_REG);
 
+/* Decode macros */
+#define DECODE_SEC()        do { _sec = _decode_gen(_raw_data[DATA_SEC]); } while (0);
+#define DECODE_MIN()        do { _min = _decode_gen(_raw_data[DATA_MIN]); } while (0);
+#define DECODE_HOU()        do { _decode_hou(); } while (0);
+
+#define DECODE_DAT()        do { _dat = _decode_gen(_raw_data[DATA_DAT]); } while (0);
+#define DECODE_MON()        do { _mon = _decode_gen(_raw_data[DATA_MON]); } while (0);
+#define DECODE_YEAR()       do { _year = 2000 + _decode_gen(_raw_data[DATA_YEAR]); } while (0);
+
 /* Miscellaneous */
 #define MASK_BIT(bit)       (1 << bit)
 #define SET_BIT(x, bit)     (x |= (1 << bit))
 #define UNSET_BIT(x, bit)   (x &= (~(1 << bit)))
 #define LSB_HALF(x)         (x & 0xF)
 #define MSB_HALF(x)         ((x & (0xF << 4)) >> 4)
+#define COMBINE(x, y)       ((uint8_t)((x << 4) | (y)))
 
 #define ASCII_OFFSET        48
 
@@ -126,30 +136,6 @@ void SimpleDS3231::_get_data_reg(uint8_t reg, uint8_t n_regs)
     _send_stop();
 }
 
-inline void SimpleDS3231::_format_sec_data()
-{
-    _sec = MSB_HALF(_raw_data[DATA_SEC]) * 10 + LSB_HALF(_raw_data[DATA_SEC]);
-}
-
-inline void SimpleDS3231::_format_min_data()
-{
-    _min = MSB_HALF(_raw_data[DATA_MIN]) * 10 + LSB_HALF(_raw_data[DATA_MIN]);
-}
-
-inline void SimpleDS3231::_format_hou_data()
-{
-    _12_format = _raw_data[DATA_HOU] & MASK_BIT(HOU_FORMAT);
-    if (_12_format) {
-        _is_pm = _raw_data[DATA_HOU] & MASK_BIT(HOU_AM_PM);
-        _hou = MSB_HALF(_raw_data[DATA_HOU] & MASK_BIT(HOU_TENS_1)) * 10 +
-                LSB_HALF(_raw_data[DATA_HOU]);
-    } else {
-        _hou = MSB_HALF((_raw_data[DATA_HOU] & MASK_BIT(HOU_TENS_1)) |
-                        (_raw_data[DATA_HOU] & MASK_BIT(HOU_TENS_2))) * 10 +
-                            LSB_HALF(_raw_data[DATA_HOU]);
-    }
-}
-
 inline void SimpleDS3231::_format_time_string()
 {
     /* Format time string */
@@ -172,29 +158,6 @@ inline void SimpleDS3231::_format_time_string()
                                 (_raw_data[DATA_HOU] & MASK_BIT(HOU_TENS_2))) + ASCII_OFFSET;
         _time_str[8] = '\0';
     }
-}
-
-void SimpleDS3231::_format_time_data()
-{
-    _format_sec_data();
-    _format_min_data();
-    _format_hou_data();
-    _format_time_string();
-}
-
-inline void SimpleDS3231::_format_dat_data()
-{
-    _dat = MSB_HALF(_raw_data[DATA_DAT]) * 10 + LSB_HALF(_raw_data[DATA_DAT]);
-}
-
-inline void SimpleDS3231::_format_mon_data()
-{
-    _mon = MSB_HALF(_raw_data[DATA_MON]) * 10 + LSB_HALF(_raw_data[DATA_MON]);
-}
-
-inline void SimpleDS3231::_format_year_data()
-{
-    _year = 2000 + MSB_HALF(_raw_data[DATA_YEAR]) * 10 + LSB_HALF(_raw_data[DATA_YEAR]);
 }
 
 inline void SimpleDS3231::_format_date_string()
@@ -231,18 +194,29 @@ inline void SimpleDS3231::_format_date_string()
     _date_str[9] = year_aux + ASCII_OFFSET;
 }
 
-void SimpleDS3231::_format_date_data()
+inline uint8_t SimpleDS3231::_decode_gen(uint8_t raw_data)
 {
-    _format_dat_data();
-    _format_mon_data();
-    _format_year_data();
-    _format_date_string();
+    return MSB_HALF(raw_data) * 10 + LSB_HALF(raw_data);
+}
+
+inline void SimpleDS3231::_decode_hou()
+{
+    _12_format = _raw_data[DATA_HOU] & MASK_BIT(HOU_FORMAT);
+    if (_12_format) {
+        _is_pm = _raw_data[DATA_HOU] & MASK_BIT(HOU_AM_PM);
+        _hou = MSB_HALF(_raw_data[DATA_HOU] & MASK_BIT(HOU_TENS_1)) * 10 +
+                LSB_HALF(_raw_data[DATA_HOU]);
+    } else {
+        _hou = MSB_HALF((_raw_data[DATA_HOU] & MASK_BIT(HOU_TENS_1)) |
+                        (_raw_data[DATA_HOU] & MASK_BIT(HOU_TENS_2))) * 10 +
+                            LSB_HALF(_raw_data[DATA_HOU]);
+    }
 }
 
 uint8_t SimpleDS3231::get_sec()
 {
     GET_SEC_DATA();
-    _format_sec_data();
+    DECODE_SEC();
 
     return _sec;
 }
@@ -250,7 +224,7 @@ uint8_t SimpleDS3231::get_sec()
 uint8_t SimpleDS3231::get_min()
 {
     GET_MIN_DATA();
-    _format_min_data();
+    DECODE_MIN();
 
     return _min;
 }
@@ -258,7 +232,7 @@ uint8_t SimpleDS3231::get_min()
 uint8_t SimpleDS3231::get_hou()
 {
     GET_HOU_DATA();
-    _format_hou_data();
+    DECODE_HOU();
 
     return _hou;
 }
@@ -266,7 +240,10 @@ uint8_t SimpleDS3231::get_hou()
 const char* SimpleDS3231::get_time_str()
 {
     GET_ALL_DATA();
-    _format_time_data();
+    DECODE_SEC();
+    DECODE_MIN();
+    DECODE_HOU();
+    _format_time_string();
 
     return _time_str;
 }
@@ -274,7 +251,7 @@ const char* SimpleDS3231::get_time_str()
 uint8_t SimpleDS3231::get_dat()
 {
     GET_DAT_DATA();
-    _format_dat_data();
+    DECODE_DAT();
 
     return _dat;
 }
@@ -282,7 +259,7 @@ uint8_t SimpleDS3231::get_dat()
 uint8_t SimpleDS3231::get_mon()
 {
     GET_MON_DATA();
-    _format_mon_data();
+    DECODE_MON();
 
     return _mon;
 }
@@ -290,7 +267,7 @@ uint8_t SimpleDS3231::get_mon()
 int SimpleDS3231::get_year()
 {
     GET_YEAR_DATA();
-    _format_year_data();
+    DECODE_YEAR();
 
     return _year;
 }
@@ -298,7 +275,10 @@ int SimpleDS3231::get_year()
 const char* SimpleDS3231::get_date_str()
 {
     GET_ALL_DATA();
-    _format_date_data();
+    DECODE_DAT();
+    DECODE_MON();
+    DECODE_YEAR();
+    _format_date_string();
 
     return _date_str;
 }
