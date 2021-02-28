@@ -11,7 +11,9 @@
 #include "SimpleDS3231.h"
 #include "include/ds3231.h"
 
-/* Indexes of internal data array */
+/*
+ * Indexes of internal data array
+ */
 #define DATA_SEC            0
 #define DATA_MIN            1
 #define DATA_HOU            2
@@ -20,13 +22,17 @@
 #define DATA_MON            5
 #define DATA_YEAR           6
 
-/* Bit defines for the hour raw data */
+/*
+ * Bit defines for the hour raw data
+ */
 #define HOU_TENS_1          4
 #define HOU_TENS_2          5
 #define HOU_AM_PM           5
 #define HOU_FORMAT          6
 
-/* Read macros */
+/*
+ * Read macros
+ */
 #define READ_SEC_DATA()     _read_data_reg(DS3231_SEC_REG, 1)
 #define READ_MIN_DATA()     _read_data_reg(DS3231_MIN_REG, 1);
 #define READ_HOU_DATA()     _read_data_reg(DS3231_HOU_REG, 1);
@@ -35,7 +41,9 @@
 #define READ_YEAR_DATA()    _read_data_reg(DS3231_YEAR_REG, 1);
 #define READ_ALL_DATA()     _read_data_reg(DS3231_SEC_REG, DS3231_NO_DATA_REG);
 
-/* Set macros */
+/*
+ * Set macros
+ */
 #define WRITE_SEC_DATA()    _write_data_reg(DS3231_SEC_REG, 1)
 #define WRITE_MIN_DATA()    _write_data_reg(DS3231_MIN_REG, 1);
 #define WRITE_HOU_DATA()    _write_data_reg(DS3231_HOU_REG, 1);
@@ -45,7 +53,9 @@
 #define WRITE_YEAR_DATA()   _write_data_reg(DS3231_YEAR_REG, 1);
 #define WRITE_DATE_DATA()   _write_data_reg(DS3231_DAY_REG, 3);
 
-/* Decode macros */
+/*
+ * Decode macros
+ */
 #define DECODE_SEC()        do { _sec = _decode_gen(_data_buffer[DATA_SEC]); } while (0);
 #define DECODE_MIN()        do { _min = _decode_gen(_data_buffer[DATA_MIN]); } while (0);
 #define DECODE_HOU()        do { _decode_hou(); } while (0);
@@ -54,7 +64,9 @@
 #define DECODE_MON()        do { _mon = _decode_gen(_data_buffer[DATA_MON]); } while (0);
 #define DECODE_YEAR()       do { _year = 2000 + _decode_gen(_data_buffer[DATA_YEAR]); } while (0);
 
-/* Encode macros */
+/*
+ * Encode macros
+ */
 #define ENCODE_SEC(sec)                     do { _data_buffer[DATA_SEC] = _encode_gen(sec); } while (0);
 #define ENCODE_MIN(min)                     do { _data_buffer[DATA_MIN] = _encode_gen(min); } while (0);
 #define ENCODE_HOU(hou, format, is_pm)      do { _data_buffer[DATA_HOU] = _encode_hou(hou, format, is_pm); } while (0);
@@ -63,7 +75,9 @@
 #define ENCODE_MON(mon)                     do { _data_buffer[DATA_MON] = _encode_gen(mon); } while (0);
 #define ENCODE_YEAR(year)                   do { _data_buffer[DATA_YEAR] = _encode_gen(year); } while (0);
 
-/* Miscellaneous */
+/*
+ * Miscellaneous
+ */
 #define MASK_BIT(bit)       (1 << bit)
 #define SET_BIT(x, bit)     (x |= (1 << bit))
 #define UNSET_BIT(x, bit)   (x &= (~(1 << bit)))
@@ -154,12 +168,16 @@ void SimpleDS3231::_read_data_reg(uint8_t reg, uint8_t n_regs)
 {
     int i = 0;
 
-    /* Set starting register */
+    /*
+     * Set starting register
+     */
     _write_start();
     _write_byte(DS3231_WRITE_ADDR);
     _write_byte(reg);
 
-    /* Start receiving data */
+    /*
+     * Start receiving data
+     */
     _write_start();
     _write_byte(DS3231_READ_ADDR);
 
@@ -178,12 +196,16 @@ void SimpleDS3231::_write_data_reg(uint8_t reg, uint8_t n_regs)
 {
     int i = 0;
 
-    /* Set starting register */
+    /*
+     * Set starting register
+     */
     _write_start();
     _write_byte(DS3231_WRITE_ADDR);
     _write_byte(reg);
 
-    /* Send data */
+    /*
+     * Send data
+     */
     for (i = reg; i < reg + n_regs; i++)
         _write_byte(_data_buffer[i]);
 
@@ -192,7 +214,9 @@ void SimpleDS3231::_write_data_reg(uint8_t reg, uint8_t n_regs)
 
 INLINE void SimpleDS3231::_format_time_string()
 {
-    /* Format time string */
+    /*
+     * Format time string
+     */
     _str_buffer[2] = _str_buffer[5] = ':';
     _str_buffer[1] = LSB_HALF(_data_buffer[DATA_HOU]) + ASCII_OFFSET;
     _str_buffer[3] = MSB_HALF(_data_buffer[DATA_MIN]) + ASCII_OFFSET;
@@ -485,19 +509,23 @@ void SimpleDS3231::enable_fine_clock()
      */
     TCCR1A = 0;
     TCCR1B = 0;
+
     /*
      * Init counter register.
      */
     TCNT1  = 0;
+
     /*
      * Init compare match register.
      */
     OCR1A = 31;
+
     /*
      * Set CTC mode and clock source as T1 on rising edge.
      */
     TCCR1B |= (1 << WGM12);
     TCCR1B |= ((1 << CS12) | (1 << CS11) | (1 << CS10));
+
     /*
      * Enable time compare interrupt.
      */
