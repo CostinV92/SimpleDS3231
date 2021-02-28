@@ -1,4 +1,4 @@
-/* 
+/*
  * Simple driver for DS3231 RTC module.
  *
  * Written by Victor Gabriel Costin.
@@ -9,7 +9,11 @@
 #define __SIMPLEI2CINTERFACE_H__
 
 class SimpleI2CInterface {
+#ifdef SIMPLE_DS3231_DEBUG
+public:
+#else
 protected:
+#endif
     void                _write_start();
     void                _write_stop();
     void                _write_byte(uint8_t byte);

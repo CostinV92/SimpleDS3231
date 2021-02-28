@@ -72,6 +72,18 @@
 
 #define ASCII_OFFSET        48
 
+/*
+ * Uncomment the below macro to debug the lib (all functions become public).
+ * The same macro must be defined in your sketch before including SimpleDS3231.h.
+ */
+/* #define SIMPLE_DS3231_DEBUG */
+
+#ifdef SIMPLE_DS3231_DEBUG
+    #define INLINE
+#else
+    #define INLINE      inline
+#endif
+
 SimpleI2CInterface::SimpleI2CInterface() {}
 
 void SimpleI2CInterface::begin()
@@ -85,19 +97,19 @@ void SimpleI2CInterface::begin()
     TWBR = ((F_CPU / 400000L) - 16) / 2;
 }
 
-inline void SimpleI2CInterface::_write_start()
+INLINE void SimpleI2CInterface::_write_start()
 {
     TWCR = MASK_BIT(TWINT) | MASK_BIT(TWSTA) | MASK_BIT(TWEN);
 
     _wait_int();
 }
 
-inline void SimpleI2CInterface::_write_stop()
+INLINE void SimpleI2CInterface::_write_stop()
 {
     TWCR = MASK_BIT(TWINT) | MASK_BIT(TWSTO) | MASK_BIT(TWEN);
 }
 
-inline void SimpleI2CInterface::_write_byte(uint8_t byte)
+INLINE void SimpleI2CInterface::_write_byte(uint8_t byte)
 {
     TWDR = byte;
 
@@ -106,7 +118,7 @@ inline void SimpleI2CInterface::_write_byte(uint8_t byte)
     _wait_int();
 }
 
-inline uint8_t SimpleI2CInterface::_read_byte_ack()
+INLINE uint8_t SimpleI2CInterface::_read_byte_ack()
 {
     TWCR = MASK_BIT(TWINT) | MASK_BIT(TWEA) | MASK_BIT(TWEN);
 
@@ -115,7 +127,7 @@ inline uint8_t SimpleI2CInterface::_read_byte_ack()
     return TWDR;
 }
 
-inline uint8_t SimpleI2CInterface::_read_byte_nack()
+INLINE uint8_t SimpleI2CInterface::_read_byte_nack()
 {
     TWCR = MASK_BIT(TWINT) | MASK_BIT(TWEN);
 
@@ -124,7 +136,7 @@ inline uint8_t SimpleI2CInterface::_read_byte_nack()
     return TWDR;
 }
 
-inline void SimpleI2CInterface::_wait_int()
+INLINE void SimpleI2CInterface::_wait_int()
 {
     while (!(TWCR & MASK_BIT(TWINT))) {}
     /* TODO(victor): check status */
@@ -172,7 +184,7 @@ void SimpleDS3231::_write_data_reg(uint8_t reg, uint8_t n_regs)
     _write_stop();
 }
 
-inline void SimpleDS3231::_format_time_string()
+INLINE void SimpleDS3231::_format_time_string()
 {
     /* Format time string */
     _str_buffer[2] = _str_buffer[5] = ':';
@@ -197,7 +209,7 @@ inline void SimpleDS3231::_format_time_string()
     }
 }
 
-inline void SimpleDS3231::_format_date_string()
+INLINE void SimpleDS3231::_format_date_string()
 {
     int year_aux = 0, aux = 0;
 
@@ -231,12 +243,12 @@ inline void SimpleDS3231::_format_date_string()
     _str_buffer[9] = year_aux + ASCII_OFFSET;
 }
 
-inline uint8_t SimpleDS3231::_decode_gen(uint8_t raw_data)
+INLINE uint8_t SimpleDS3231::_decode_gen(uint8_t raw_data)
 {
     return MSB_HALF(raw_data) * 10 + LSB_HALF(raw_data);
 }
 
-inline void SimpleDS3231::_decode_hou()
+INLINE void SimpleDS3231::_decode_hou()
 {
     _12_format = _data_buffer[DATA_HOU] & MASK_BIT(HOU_FORMAT);
     if (_12_format) {
@@ -250,7 +262,7 @@ inline void SimpleDS3231::_decode_hou()
     }
 }
 
-inline uint8_t SimpleDS3231::_encode_gen(uint8_t data)
+INLINE uint8_t SimpleDS3231::_encode_gen(uint8_t data)
 {
     uint8_t msbd = 0;
 
@@ -262,7 +274,7 @@ inline uint8_t SimpleDS3231::_encode_gen(uint8_t data)
     return COMBINE(msbd, data);
 }
 
-inline uint8_t SimpleDS3231::_encode_hou(uint8_t hou, bool am_pm_format, bool is_pm)
+INLINE uint8_t SimpleDS3231::_encode_hou(uint8_t hou, bool am_pm_format, bool is_pm)
 {
     uint8_t rv = 0;
 
