@@ -62,6 +62,9 @@ public:
     void                set_mon(uint8_t mon);
     void                set_year(int year);
     void                set_date(uint8_t day, uint8_t mon, int year);
+
+    void                enable_fine_clock();
+    uint32_t            get_millis();
 };
 
 #endif /* __SIMPLEDS3231_H__ */

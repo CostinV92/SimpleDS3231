@@ -6,6 +6,7 @@
  */
 
 #include <Arduino.h>
+#include <util/atomic.h>
 
 #include "SimpleDS3231.h"
 #include "include/ds3231.h"
@@ -83,6 +84,11 @@
 #else
     #define INLINE      inline
 #endif
+
+/*
+ * Global variables used by the fine clock.
+ */
+volatile uint32_t ms_g, us_g, ns_g, ps_g;
 
 SimpleI2CInterface::SimpleI2CInterface() {}
 
@@ -457,4 +463,75 @@ void SimpleDS3231::set_date(uint8_t day, uint8_t mon, int year)
     ENCODE_MON(mon);
     ENCODE_YEAR(year - 2000);
     WRITE_DATE_DATA();
+}
+
+/*
+ * The fine clock uses the DS3231 32.768kHz clock to  count milliseconds (resolution: 976us 562ns 5ps)
+ * It enables a compare match interrupt on T1. The interrupt runs at every 32 clock cycles.
+ * 1 / 32678 = 0.00003051757 * 32 = 0.0009765625 = 976us 562ns 5ps
+ */
+void SimpleDS3231::enable_fine_clock()
+{
+    pinMode(5, INPUT_PULLUP);
+
+    _write_start();
+    _write_byte(DS3231_WRITE_ADDR);
+    _write_byte(DS3231_CTL_STA_REG);
+    _write_byte(1 << 3);
+
+    noInterrupts();
+    /*
+     * Init control registers.
+     */
+    TCCR1A = 0;
+    TCCR1B = 0;
+    /*
+     * Init counter register.
+     */
+    TCNT1  = 0;
+    /*
+     * Init compare match register.
+     */
+    OCR1A = 31;
+    /*
+     * Set CTC mode and clock source as T1 on rising edge.
+     */
+    TCCR1B |= (1 << WGM12);
+    TCCR1B |= ((1 << CS12) | (1 << CS11) | (1 << CS10));
+    /*
+     * Enable time compare interrupt.
+     */
+    TIMSK1 |= (1 << OCIE1A);
+    interrupts();
+}
+
+uint32_t SimpleDS3231::get_millis()
+{
+    uint32_t ms;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        ms = ms_g;
+    }
+    return ms;
+}
+
+ISR(TIMER1_COMPA_vect)
+{
+    ps_g += 5;
+    ns_g += 562;
+    us_g += 976;
+
+    while (ps_g >= 1000) {
+        ns_g++;
+        ps_g -= 1000;
+    }
+
+    while (ns_g >= 1000) {
+        us_g++;
+        ns_g -= 1000;
+    }
+
+    while (us_g >= 1000) {
+        ms_g++;
+        us_g -= 1000;
+    }
 }
