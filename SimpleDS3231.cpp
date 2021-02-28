@@ -1,4 +1,4 @@
-/* 
+/*
  * Simple Arduino driver for DS3231 RTC module.
  *
  * Written by Victor Gabriel Costin.
@@ -87,7 +87,6 @@ void SimpleI2CInterface::begin()
 
 inline void SimpleI2CInterface::_write_start()
 {
-
     TWCR = MASK_BIT(TWINT) | MASK_BIT(TWSTA) | MASK_BIT(TWEN);
 
     _wait_int();
@@ -208,7 +207,7 @@ inline void SimpleDS3231::_format_date_string()
     _str_buffer[1] = LSB_HALF(_data_buffer[DATA_DAY]) + ASCII_OFFSET;
     _str_buffer[3] = MSB_HALF(_data_buffer[DATA_MON]) + ASCII_OFFSET;
     _str_buffer[4] = LSB_HALF(_data_buffer[DATA_MON]) + ASCII_OFFSET;
-    
+
     year_aux = _year;
     while (year_aux >= 1000) {
         aux++;
@@ -277,6 +276,23 @@ inline uint8_t SimpleDS3231::_encode_hou(uint8_t hou, bool am_pm_format, bool is
     }
 
     return rv;
+}
+
+uint8_t SimpleDS3231::get_temp()
+{
+    uint8_t temp;
+
+    _write_start();
+    _write_byte(DS3231_WRITE_ADDR);
+    _write_byte(DS3231_MSB_TMP_REG);
+
+    _write_start();
+    _write_byte(DS3231_READ_ADDR);
+
+    temp = _read_byte_nack();
+    _write_stop();
+
+    return temp;
 }
 
 uint8_t SimpleDS3231::get_sec()

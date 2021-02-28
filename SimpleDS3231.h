@@ -1,4 +1,4 @@
-/* 
+/*
  * Simple Arduino driver for DS3231 RTC module.
  *
  * Written by Victor Gabriel Costin.
@@ -39,6 +39,8 @@ private:
 
 public:
     SimpleDS3231();
+
+    uint8_t             get_temp();
 
     uint8_t             get_hou();
     uint8_t             get_min();
